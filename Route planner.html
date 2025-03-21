@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delivery Route Optimizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .map-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 8px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s ease;
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .file-upload-label:hover {
+            background: #0056b3;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.active {
+            background: #0056b3;
+        }
+
+        .database-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .database-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .database-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .database-table {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+        }
+
+        .favorite-locations {
+            margin-bottom: 20px;
+        }
+
+        .bulk-upload {
+            margin-bottom: 20px;
+        }
+
+        .location-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e1e4e8;
+            transition: all 0.3s ease;
+            justify-content: space-between;
+        }
+
+        .route-links {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .route-link {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e1e4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-link a {
+            color: #2c3e50;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suggestions-container {
+            position: relative;
+        }
+
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #e1e4e8;
+            transition: all 0.2s ease;
+            color: #333;
+        }
+
+        .suggestion-selected {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #fff;
+            }
+
+            .header, .sidebar, .map-container, .controls {
+                background: #2d2d2d;
+                border-color: #3d3d3d;
+            }
+
+            input[type="text"] {
+                background: #3d3d3d;
+                border-color: #4d4d4d;
+                color: #fff;
+            }
+
+            .location-item, .route-link {
+                background: #3d3d3d;
+                border-color: #4d4d4d;
+            }
+
+            .route-link a {
+                color: #fff;
+            }
+
+            .suggestion-item {
+                color: #fff;
+                background: #2d2d2d;
+            }
+
+            .suggestion-selected {
+                background-color: #3d4043;
+                color: #8ab4f8;
+            }
+
+            .database-controls,
+            .database-table {
+                background: #2d2d2d;
+            }
+
+            #locationsTable th {
+                background: #333;
+            }
+
+            .example-format {
+                background: #333;
+            }
+
+            .example-format code {
+                background: #2d2d2d;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+
+            .map-container {
+                order: 1;
+            }
+
+            #map {
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .controls, .sidebar, .map-container {
+                padding: 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .location-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .location-item button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Delivery Route Optimizer</h1>
+            <div class="nav-buttons">
+                <button onclick="showMainPage()" id="mainPageBtn" class="active">
+                    <span class="material-icons">map</span>
+                    Route Planner
+                </button>
+                <button onclick="showDatabasePage()" id="databaseBtn">
+                    <span class="material-icons">storage</span>
+                    Location Database
+                </button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="controls">
+                    <div class="input-group">
+                        <div class="suggestions-container">
+                            <input type="text" id="location" placeholder="Enter delivery address" autocomplete="off">
+                            <div id="suggestions" class="suggestions-list" style="display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="addLocation()">
+                            <span class="material-icons">add_location</span>
+                            Add Location
+                        </button>
+                        <button onclick="optimizeRoute()">
+                            <span class="material-icons">route</span>
+                            Optimize
+                        </button>
+                        <button onclick="clearLocations()">
+                            <span class="material-icons">clear_all</span>
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bulk-upload">
+                    <h3>Bulk Upload</h3>
+                    <div class="input-group">
+                        <label for="bulkUpload" class="file-upload-label">
+                            <span class="material-icons">upload_file</span>
+                            Choose File
+                        </label>
+                        <input type="file" id="bulkUpload" accept=".csv,.txt" onchange="handleBulkUpload(event)">
+                        <button onclick="document.getElementById('bulkUpload').click()">
+                            <span class="material-icons">upload_file</span>
+                            Upload Locations
+                        </button>
+                    </div>
+                </div>
+
+                <div class="favorite-locations">
+                    <h3>Favorite Locations</h3>
+                    <div id="favoritesList"></div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+                <div id="routeLinks" class="route-links"></div>
+                <div id="routeOverview">
+                    <h3>Route Overview</h3>
+                    <div id="routeList"></div>
+                    <button onclick="openFullRouteInMaps()" style="width: 100%; margin-top: 10px;">
+                        <span class="material-icons">map</span>
+                        Open Full Route in Maps
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="databasePage" style="display: none;" class="database-container">
+            <div class="database-content">
+                <div class="database-controls">
+                    <h2 style="margin-bottom: 24px;">Location Database</h2>
+                    <div class="add-location-form" style="margin-bottom: 32px;">
+                        <input type="text" id="dbLocationName" placeholder="Location Name" style="margin-bottom: 12px;">
+                        <input type="text" id="dbLocationAddress" placeholder="Address" style="margin-bottom: 12px;">
+                        <div class="checkbox-group" style="margin-bottom: 12px;">
+                            <input type="checkbox" id="dbFavorite">
+                            <label for="dbFavorite">Add to Favorites</label>
+                        </div>
+                        <button onclick="addToDatabase()" style="width: 100%;">
+                            <span class="material-icons">add</span>
+                            Add Location
+                        </button>
+                    </div>
+                    
+                    <div class="bulk-import-section" style="margin-bottom: 32px;">
+                        <h3 style="margin-bottom: 12px;">Bulk Import</h3>
+                        <p style="margin-bottom: 12px;">Upload CSV file with format: Name, Address, Favorite (true/false)</p>
+                        <div class="file-upload">
+                            <label for="csvFile" class="file-upload-label" style="margin-bottom: 12px;">
+                                <span class="material-icons">upload_file</span>
+                                Choose CSV File
+                            </label>
+                            <input type="file" id="csvFile" accept=".csv" onchange="handleCsvUpload(event)">
+                            <label for="bulkUploadDb" class="file-upload-label">
+                                <span class="material-icons">upload_file</span>
+                                Upload Text File
+                            </label>
+                            <input type="file" id="bulkUploadDb" accept=".txt" onchange="handleBulkDatabaseUpload(event)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="database-table">
+                    <div class="table-controls" style="margin-bottom: 20px;">
+                        <input type="text" id="searchDatabase" placeholder="Search locations..." onkeyup="searchLocations()" style="margin-bottom: 12px;">
+                        <button onclick="exportDatabase()" style="width: 100%;">
+                            <span class="material-icons">download</span>
+                            Export Database
+                        </button>
+                    </div>
+                    <table id="locationsTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Name</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Address</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Favorite</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locationsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+        let locations = [];
+        let route = [];
+        let favoriteLocations = JSON.parse(localStorage.getItem('favoriteLocations') || '[]');
+        let searchTimeout;
+        let currentSuggestionIndex = -1;
+        const locationInput = document.getElementById('location');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        // Initialize database in localStorage if it doesn't exist
+        if (!localStorage.getItem('locationDatabase')) {
+            localStorage.setItem('locationDatabase', JSON.stringify([]));
+        }
+
+        // Initialize map
+        window.onload = async function() {
+            // Get coordinates for starting location
+            const startAddress = 'Jan de Graefstraat 24, Antwerp, Belgium';
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startAddress)}`);
+                const data = await response.json();
+                
+                if (data.length > 0) {
+                    const location = data[0];
+                    map = L.map('map').setView([location.lat, location.lon], 13);
+                } else {
+                    // Fallback to default location if geocoding fails
+                    map = L.map('map').setView([51.505, -0.09], 13);
+                }
+            } catch (error) {
+                // Fallback to default location if request fails
+                map = L.map('map').setView([51.505, -0.09], 13);
+            }
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            updateFavoriteLocations();
+        };
+
+        // Location search and suggestions
+        locationInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value;
+            
+            if (query.length < 3) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsDiv.innerHTML = '';
+                        data.forEach((result, index) => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            div.textContent = result.display_name;
+                            div.onclick = () => {
+                                locationInput.value = result.display_name;
+                                suggestionsDiv.style.display = 'none';
+                            };
+                            suggestionsDiv.appendChild(div);
+                        });
+                        suggestionsDiv.style.display = data.length ? 'block' : 'none';
+                    });
+            }, 300);
+        });
+
+        // Add location to map
+        async function addLocation() {
+            const address = document.getElementById('location').value;
+            if (!address) return;
+
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+                const data = await response.json();
+                
+                if (data.length > 0) {
+                    const location = data[0];
+                    const marker = L.marker([location.lat, location.lon]).addTo(map);
+                    markers.push(marker);
+                    locations.push({
+                        address: address,
+                        lat: location.lat,
+                        lon: location.lon,
+                        name: findLocationName(address)
+                    });
+                    
+                    updateRouteList();
+                    map.setView([location.lat, location.lon], 13);
+                }
+            } catch (error) {
+                console.error('Error adding location:', error);
+            }
+        }
+
+        // Find location name from database
+        function findLocationName(address) {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const location = database.find(loc => loc.address === address);
+            return location ? location.name : '';
+        }
+
+        // Clear all locations
+        function clearLocations() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            locations = [];
+            route = [];
+            updateRouteList();
+        }
+
+        // Optimize route
+        function optimizeRoute() {
+            if (locations.length < 2) return;
+            
+            // Simple nearest neighbor algorithm
+            route = [0];
+            const unvisited = new Set([...Array(locations.length).keys()].slice(1));
+            
+            while (unvisited.size > 0) {
+                const current = route[route.length - 1];
+                let nearest = null;
+                let minDist = Infinity;
+                
+                for (const next of unvisited) {
+                    const dist = getDistance(
+                        locations[current].lat,
+                        locations[current].lon,
+                        locations[next].lat,
+                        locations[next].lon
+                    );
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = next;
+                    }
+                }
+                
+                route.push(nearest);
+                unvisited.delete(nearest);
+            }
+            
+            updateRouteList();
+            drawRoute();
+        }
+
+        // Helper function to calculate distance
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // Draw route on map
+        function drawRoute() {
+            // Remove existing route lines
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Polyline) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Draw new route
+            const routePoints = route.map(i => [locations[i].lat, locations[i].lon]);
+            L.polyline(routePoints, {color: 'blue'}).addTo(map);
+        }
+
+        // Update route list display
+        function updateRouteList() {
+            const routeList = document.getElementById('routeList');
+            routeList.innerHTML = '';
+            
+            if (route.length > 0) {
+                route.forEach((index, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'route-link';
+                    const locationName = locations[index].name ? `${locations[index].name} - ` : '';
+                    div.innerHTML = `
+                        <span>${i + 1}. ${locationName}${locations[index].address}</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="navigateToLocation(${index})" style="padding: 5px 10px;">
+                                <span class="material-icons">navigation</span>
+                            </button>
+                            <button onclick="deleteLocation(${index})" style="padding: 5px 10px;">
+                                <span class="material-icons">delete</span>
+                            </button>
+                        </div>
+                    `;
+                    routeList.appendChild(div);
+                });
+            } else {
+                locations.forEach((loc, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'route-link';
+                    const locationName = loc.name ? `${loc.name} - ` : '';
+                    div.innerHTML = `
+                        <span>${i + 1}. ${locationName}${loc.address}</span>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="navigateToLocation(${i})" style="padding: 5px 10px;">
+                                <span class="material-icons">navigation</span>
+                            </button>
+                            <button onclick="deleteLocation(${i})" style="padding: 5px 10px;">
+                                <span class="material-icons">delete</span>
+                            </button>
+                        </div>
+                    `;
+                    routeList.appendChild(div);
+                });
+            }
+        }
+
+        // Navigate to location using Google Maps
+        function navigateToLocation(index) {
+            const location = locations[index];
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location.address)}`;
+            window.open(url, '_blank');
+        }
+
+        // Open full route in Google Maps
+        function openFullRouteInMaps() {
+            if (locations.length < 2) return;
+            
+            const waypoints = route.length > 0 ? route.slice(1, -1).map(i => locations[i].address) : locations.slice(1, -1).map(loc => loc.address);
+            const origin = locations[0].address;
+            const destination = locations[locations.length - 1].address;
+            
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
+            window.open(url, '_blank');
+        }
+
+        // Delete location
+        function deleteLocation(index) {
+            map.removeLayer(markers[index]);
+            markers.splice(index, 1);
+            locations.splice(index, 1);
+            route = [];
+            updateRouteList();
+        }
+
+        // Handle bulk upload
+        function handleBulkUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const addresses = e.target.result.split('\n');
+                    for (const address of addresses) {
+                        if (address.trim()) {
+                            document.getElementById('location').value = address.trim();
+                            await addLocation();
+                        }
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function showMainPage() {
+            document.querySelector('.main-content').style.display = 'grid';
+            document.getElementById('databasePage').style.display = 'none';
+            document.getElementById('mainPageBtn').classList.add('active');
+            document.getElementById('databaseBtn').classList.remove('active');
+        }
+
+        function showDatabasePage() {
+            document.querySelector('.main-content').style.display = 'none';
+            document.getElementById('databasePage').style.display = 'block';
+            document.getElementById('databaseBtn').classList.add('active');
+            document.getElementById('mainPageBtn').classList.remove('active');
+            refreshDatabaseTable();
+        }
+
+        function addToDatabase() {
+            const name = document.getElementById('dbLocationName').value;
+            const address = document.getElementById('dbLocationAddress').value;
+            const isFavorite = document.getElementById('dbFavorite').checked;
+
+            if (!name || !address) {
+                alert('Please fill in both name and address');
+                return;
+            }
+
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            database.push({ name, address, isFavorite });
+            localStorage.setItem('locationDatabase', JSON.stringify(database));
+
+            // Clear inputs
+            document.getElementById('dbLocationName').value = '';
+            document.getElementById('dbLocationAddress').value = '';
+            document.getElementById('dbFavorite').checked = false;
+
+            refreshDatabaseTable();
+            updateFavoriteLocations();
+        }
+
+        function refreshDatabaseTable() {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const tableBody = document.getElementById('locationsTableBody');
+            tableBody.innerHTML = '';
+
+            database.forEach((location, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding: 12px">${location.name}</td>
+                    <td style="padding: 12px">${location.address}</td>
+                    <td style="padding: 12px">
+                        <input type="checkbox" 
+                               style="transform: scale(1.2)"
+                               ${location.isFavorite ? 'checked' : ''} 
+                               onchange="toggleFavorite(${index})">
+                    </td>
+                    <td style="padding: 12px">
+                        <button onclick="deleteFromDatabase(${index})" style="margin-right: 10px; padding: 8px">
+                            <span class="material-icons">delete</span>
+                        </button>
+                        <button onclick="addToRoute(${index})" style="padding: 8px">
+                            <span class="material-icons">add_location</span>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function handleCsvUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const rows = text.split('\n');
+                    const database = JSON.parse(localStorage.getItem('locationDatabase'));
+
+                    // Skip header row
+                    for (let i = 1; i < rows.length; i++) {
+                        const [name, address, favorite] = rows[i].split(',').map(item => item.trim());
+                        if (name && address) {
+                            database.push({
+                                name,
+                                address,
+                                isFavorite: favorite.toLowerCase() === 'true'
+                            });
+                        }
+                    }
+
+                    localStorage.setItem('locationDatabase', JSON.stringify(database));
+                    refreshDatabaseTable();
+                    updateFavoriteLocations();
+                    event.target.value = '';
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function handleBulkDatabaseUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const lines = e.target.result.split('\n');
+                    const database = JSON.parse(localStorage.getItem('locationDatabase'));
+                    
+                    lines.forEach(line => {
+                        // Split on comma but handle quoted values
+                        const parts = line.match(/(?:\"([^\"]*)\"|([^,]+))/g);
+                        
+                        if (parts && parts.length >= 4) {
+                            // Remove quotes and trim each part
+                            const [name, street, postalcode, city, favorite] = parts.map(part => 
+                                part.replace(/^"|"$/g, '').trim()
+                            );
+                            
+                            // Extract street name and number from street field
+                            const streetMatch = street.match(/^(.*?)\s*(\d+.*)$/);
+                            let streetName = street;
+                            let streetNumber = '';
+                            if (streetMatch) {
+                                streetName = streetMatch[1].trim();
+                                streetNumber = streetMatch[2].trim();
+                            }
+                            
+                            // Construct full address with proper formatting
+                            const address = `${streetName} ${streetNumber}, ${postalcode} ${city}`;
+                            
+                            if (name && streetName && postalcode && city) {
+                                database.push({
+                                    name: name,
+                                    address: address,
+                                    streetName: streetName,
+                                    streetNumber: streetNumber,
+                                    postalcode: postalcode,
+                                    city: city,
+                                    isFavorite: favorite ? favorite.toLowerCase() === 'true' : false
+                                });
+                            }
+                        }
+                    });
+
+                    localStorage.setItem('locationDatabase', JSON.stringify(database));
+                    refreshDatabaseTable();
+                    updateFavoriteLocations();
+                    event.target.value = '';
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function toggleFavorite(index) {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            database[index].isFavorite = !database[index].isFavorite;
+            localStorage.setItem('locationDatabase', JSON.stringify(database));
+            updateFavoriteLocations();
+        }
+
+        function deleteFromDatabase(index) {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            database.splice(index, 1);
+            localStorage.setItem('locationDatabase', JSON.stringify(database));
+            refreshDatabaseTable();
+            updateFavoriteLocations();
+        }
+
+        function searchLocations() {
+            const searchTerm = document.getElementById('searchDatabase').value.toLowerCase();
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const tableBody = document.getElementById('locationsTableBody');
+            tableBody.innerHTML = '';
+
+            database.forEach((location, index) => {
+                if (location.name.toLowerCase().includes(searchTerm) || 
+                    location.address.toLowerCase().includes(searchTerm)) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="padding: 12px">${location.name}</td>
+                        <td style="padding: 12px">${location.address}</td>
+                        <td style="padding: 12px">
+                            <input type="checkbox"
+                                   style="transform: scale(1.2)"
+                                   ${location.isFavorite ? 'checked' : ''} 
+                                   onchange="toggleFavorite(${index})">
+                        </td>
+                        <td style="padding: 12px">
+                            <button onclick="deleteFromDatabase(${index})" style="margin-right: 10px; padding: 8px">
+                                <span class="material-icons">delete</span>
+                            </button>
+                            <button onclick="addToRoute(${index})" style="padding: 8px">
+                                <span class="material-icons">add_location</span>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            });
+        }
+
+        function exportDatabase() {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const csv = ['Name,Address,Favorite'];
+            database.forEach(location => {
+                csv.push(`${location.name},${location.address},${location.isFavorite}`);
+            });
+            
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'location_database.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function updateFavoriteLocations() {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const favorites = database.filter(location => location.isFavorite);
+            const favoritesList = document.getElementById('favoritesList');
+            favoritesList.innerHTML = '';
+            favorites.forEach(location => {
+                const div = document.createElement('div');
+                div.className = 'location-item';
+                div.style.marginBottom = '15px';
+                div.innerHTML = `
+                    <span style="font-size: 1.1em; margin-right: 15px">${location.name}</span>
+                    <button onclick="addLocationFromFavorite('${location.address}')" style="padding: 8px 12px">
+                        <span class="material-icons" style="margin-right: 5px">add_location</span>
+                        Add to Route
+                    </button>
+                `;
+                favoritesList.appendChild(div);
+            });
+        }
+
+        async function addToRoute(index) {
+            const database = JSON.parse(localStorage.getItem('locationDatabase'));
+            const location = database[index];
+            document.getElementById('location').value = location.address;
+            await addLocation();
+            showMainPage();
+        }
+
+        async function addLocationFromFavorite(address) {
+            document.getElementById('location').value = address;
+            await addLocation();
+        }
+    </script>
+</body>
+</html>
